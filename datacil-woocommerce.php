@@ -28,6 +28,35 @@ define( 'DATACIL_WC_URL', plugin_dir_url( __FILE__ ) );
 define( 'DATACIL_WC_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
+ * Declarar compatibilidad con features de WooCommerce.
+ *
+ * - `custom_order_tables` (HPOS): el plugin usa CRUD methods (`wc_get_order`,
+ *   `$order->get_meta()`, `$order->update_meta_data()`) y tiene una variante
+ *   HPOS-safe para columnas admin (`render_admin_list_column_hpos`).
+ * - `cart_checkout_blocks`: el plugin integra el campo VAT con el checkout
+ *   basado en bloques (ver `class-datacil-blocks.php`).
+ *
+ * Debe ejecutarse en `before_woocommerce_init` para evitar el aviso
+ * "Incompatible with WooCommerce features" en la lista de plugins.
+ */
+add_action( 'before_woocommerce_init', 'datacil_wc_declare_features' );
+
+function datacil_wc_declare_features() {
+	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+			'custom_order_tables',
+			__FILE__,
+			true
+		);
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+			'cart_checkout_blocks',
+			__FILE__,
+			true
+		);
+	}
+}
+
+/**
  * Arranque del plugin: exige WooCommerce activo antes de cargar clases.
  * Prioridad 20 en plugins_loaded para asegurar que WC (prioridad 10) ya
  * registro sus autoloads. La subclase `WC_Settings_Page` se carga lazy
