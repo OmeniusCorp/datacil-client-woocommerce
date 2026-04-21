@@ -25,16 +25,24 @@
 
 	function renderCosts(data, err) {
 		var $tbody = $('#datacil-costs-table tbody').empty();
-		if (err || !Array.isArray(data)) {
+		// La API devuelve {costs: [...], currency: "credits"}; algunas versiones
+		// pueden devolver array directo. Normalizamos antes de iterar.
+		var list = Array.isArray(data) ? data : (data && Array.isArray(data.costs) ? data.costs : null);
+		if (err || !list) {
 			$tbody.append('<tr><td colspan="2">' + (err || DatacilAdmin.i18n.empty) + '</td></tr>');
 			return;
 		}
-		if (data.length === 0) {
+		if (list.length === 0) {
 			$tbody.append('<tr><td colspan="2">' + DatacilAdmin.i18n.empty + '</td></tr>');
 			return;
 		}
-		data.forEach(function (row) {
-			$tbody.append('<tr><td>' + escapeHtml(row.service_key || row.serviceKey || '') + '</td><td>' + escapeHtml(String(row.cost)) + '</td></tr>');
+		list.forEach(function (row) {
+			$tbody.append(
+				'<tr>' +
+					'<td>' + escapeHtml(row.service_key || row.serviceKey || '') + '</td>' +
+					'<td>' + escapeHtml(String(row.cost)) + '</td>' +
+				'</tr>'
+			);
 		});
 	}
 
