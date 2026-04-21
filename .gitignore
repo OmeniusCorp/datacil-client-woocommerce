@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# Dependencias (si alguna vez agregas build)
+node_modules/
+vendor/
+
+# Build artifacts
+*.zip
+build/
+dist/
+
+# Logs
+*.log
+
+# WP local
+.wp-env/

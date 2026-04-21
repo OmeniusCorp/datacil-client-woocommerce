@@ -1,0 +1,55 @@
+/* Checkout */
+.datacil-hidden {
+	display: none !important;
+}
+
+.datacil-validate-btn {
+	margin-top: 4px;
+	margin-right: 6px;
+}
+
+.datacil-validate-msg {
+	display: inline-block;
+	font-size: 12px;
+	margin-top: 4px;
+}
+
+.datacil-validate-msg.ok {
+	color: #2e7d32;
+}
+
+.datacil-validate-msg.error {
+	color: #c62828;
+}
+
+/* Admin dashboard */
+.datacil-admin .datacil-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+	margin-top: 20px;
+}
+
+.datacil-admin .datacil-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	padding: 20px;
+}
+
+.datacil-admin .datacil-card-wide {
+	grid-column: 1 / -1;
+}
+
+.datacil-admin .datacil-big {
+	font-size: 36px;
+	font-weight: 700;
+	margin: 8px 0 0;
+	color: #f97316;
+}
+
+.datacil-admin h2 {
+	margin-top: 0;
+	font-size: 16px;
+	font-weight: 600;
+}
