@@ -1,0 +1,107 @@
+name: Build & Release Plugin ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.0.1). Si vacio, usa version del header del plugin.'
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  PLUGIN_SLUG: datacil-woocommerce
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ -n "${INPUT_VERSION}" ]; then
+            RAW="${INPUT_VERSION}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            RAW="${GITHUB_REF_NAME}"
+          else
+            RAW=$(grep -E "^[[:space:]]*\*[[:space:]]*Version:" "${PLUGIN_SLUG}.php" | head -1 | sed -E 's/.*Version:[[:space:]]*//' | tr -d ' \r')
+            RAW="v${RAW}"
+          fi
+          if ! echo "${RAW}" | grep -qE '^v[0-9][0-9A-Za-z._-]*$'; then
+            echo "::error::Invalid version format: ${RAW}"
+            exit 1
+          fi
+          VERSION="${RAW#v}"
+          echo "raw=${RAW}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VERSION} (tag ${RAW})"
+
+      - name: Verify plugin header matches tag
+        if: github.event_name == 'push'
+        run: |
+          HEADER=$(grep -E "^[[:space:]]*\*[[:space:]]*Version:" "${PLUGIN_SLUG}.php" | head -1 | sed -E 's/.*Version:[[:space:]]*//' | tr -d ' \r')
+          if [ "${HEADER}" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::Plugin header version (${HEADER}) != tag version (${{ steps.ver.outputs.version }})"
+            exit 1
+          fi
+
+      - name: Stage plugin folder
+        run: |
+          mkdir -p build/${PLUGIN_SLUG}
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='.wordpress-org' \
+            --exclude='.idea' \
+            --exclude='.vscode' \
+            --exclude='.wp-env' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='build' \
+            --exclude='dist' \
+            --exclude='*.zip' \
+            --exclude='*.log' \
+            --exclude='tests' \
+            --exclude='phpunit.xml*' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            ./ build/${PLUGIN_SLUG}/
+
+      - name: Create ZIP
+        id: zip
+        run: |
+          cd build
+          ZIP_NAME="${PLUGIN_SLUG}-${{ steps.ver.outputs.version }}.zip"
+          zip -r "${ZIP_NAME}" "${PLUGIN_SLUG}"
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "zip_path=build/${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          ls -lh "${ZIP_NAME}"
+
+      - name: Upload artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.zip_name }}
+          path: ${{ steps.zip.outputs.zip_path }}
+          if-no-files-found: error
+
+      - name: Create / update GitHub Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.raw }}
+          name: ${{ steps.ver.outputs.raw }}
+          generate_release_notes: true
+          files: ${{ steps.zip.outputs.zip_path }}
